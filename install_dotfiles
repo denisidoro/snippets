@@ -1,0 +1,151 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export DOTFILES="${DOTFILES:-"${HOME}/dotfiles"}"
+export PATH="${DOTFILES}/bin:${PATH}:/usr/local/bin:/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:${HOME}/bin"
+
+DOT_BIN="${DOTFILES}/bin/dot"
+
+##? Setups the environment
+##?
+##? Usage:
+##?    install
+##?
+##? Env vars:
+##?    DOTFILES
+##?    EMAIL
+##?    REPO
+##?
+##? Examples:
+##?    curl -sSL https://raw.githubusercontent.com/denisidoro/snippets/master/bash/install_dotfiles | bash
+##?    wget -qO- https://raw.githubusercontent.com/denisidoro/snippets/master/bash/install_dotfiles | bash
+
+_dot() {
+   "$DOT_BIN" "$@"
+}
+
+has() {
+   type "$1" &>/dev/null
+}
+
+log::info() {
+   echo -e "\033[0;34m$*\033[0m" >&2
+}
+
+log::warn() {
+   echo -e "\033[0;33m$*\033[0m" >&2
+}
+
+_install() {
+   if has pkg; then
+      sudo pkg install -y "$1"
+   elif has apt-get; then
+      sudo apt-get install --yes "$1"
+   elif has yum; then
+      sudo yum install "$1"
+   elif has brew; then
+      brew install "$1"
+   elif has apk; then
+      sudo apk install -y "$1"
+   fi
+}
+
+_install_if_absent() {
+   local -r pkg="$1"
+   if has "$pkg"; then
+     return 0
+   fi
+   _install "$pkg"
+}
+
+clone_repo() {
+   _install_if_absent git
+   git clone "$REPO" "$DOTFILES" --depth 1
+}
+
+setup_ssh() {
+   log::info "Setting up SSH..."
+
+   if [ -f ~/.ssh/id_ed25519 ]; then
+      log::info "SSH key already exists!"
+      return
+   fi
+
+   _install_if_absent openssh
+   ssh-keygen -t ed25519 -C "$EMAIL"
+   eval "$(ssh-agent -s)"
+   ssh-add ~/.ssh/id_ed25519
+
+   log::info "Now add the following SSH key to your GitHub account:"
+   echo
+   cat ~/.ssh/id_ed25519.pub
+   echo
+   read -p "Press enter to continue..."
+}
+
+file_refers_to_dotfiles() {
+   if ! [ -f "$1" ]; then
+      return 1
+   fi
+   grep -q 'dotfiles' "$1"
+}
+
+set_bashrc() {
+   log::warn "Setting up bashrc..."
+
+   for f in ~/.bashrc ~/.bash_profile; do
+      if file_refers_to_dotfiles "$f"; then
+         log::warn "File already refers to dotfiles: $f"
+         return 0
+      fi
+   done
+
+   echo 'source "${HOME}/dotfiles/shell/bash/bashrc"' >> ~/.bash_profile
+}
+
+main() {
+   log::info "Setting up..."
+
+   setup_ssh
+
+   if [ -x "$DOT_BIN" ]; then
+      log::warn "dotfiles already cloned: ${DOT_BIN} exists!"
+   elif [ -d "$DOTFILES" ]; then
+      log::warn "Backing up existing dotfiles folder and cloning new dotfiles..."
+      local -r old_dotfiles=$(mktemp -u -d "${DOTFILES}_XXXX")
+      mv "$DOTFILES" "$old_dotfiles"
+      clone_repo
+   else
+      log::info "No dotfiles folder found. Cloning dotfiles..."
+      clone_repo
+   fi
+
+   cd "$DOTFILES"
+
+   log::info "Installing some key dependencies..."
+   _dot pkg add git curl tar vi
+
+   if uname -a | grep -q "ndroid"; then
+      log::info "Bootstraping Android..."
+      pkg install ncurses-utils || true
+      _dot pkg add termux-essentials || true
+   fi
+
+   set_bashrc
+}
+
+case "${1:-}" in
+   -h|--help|--version) grep "^##?" "$0" | cut -c 5-; exit 0 ;;
+esac
+
+if ! has sudo; then
+   sudo() { "$@"; }
+   export -f sudo
+fi
+
+export EMAIL="${EMAIL:-"$(whoami)@$(hostname)"}"
+export REPO="${REPO:-"git@github.com:denisidoro/dotfiles-private.git"}"
+
+set +e
+main "$@"
+
