@@ -46,7 +46,7 @@ _install() {
    elif has brew; then
       brew install "$1"
    elif has apk; then
-      sudo apk install -y "$1"
+      sudo apk install "$1"
    fi
 }
 
