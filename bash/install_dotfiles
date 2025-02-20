@@ -77,7 +77,7 @@ setup_ssh() {
    echo "$contents" > "${path}.pub"
 
    contents=""
-   read -p "Enter the contents of ${path}: " contents
+   read -d $'\04' -p "Enter the contents of ${path}. Hit Ctrl-D to terminate the input: " contents
    echo "$contents" > "$path"
 
    eval "$(ssh-agent -s)"
