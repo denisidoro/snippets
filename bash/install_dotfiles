@@ -14,8 +14,8 @@ export PATH="${DOTFILES}/bin:${PATH}:/usr/local/bin:/usr/bin:/usr/bin:/bin:/usr/
 ##?    HOMELAB_DOMAIN
 ##?
 ##? Examples:
-##?    curl -sSL https://raw.githubusercontent.com/denisidoro/snippets/master/bash/install_dotfiles | bash
-##?    wget -qO- https://raw.githubusercontent.com/denisidoro/snippets/master/bash/install_dotfiles | bash
+##?    curl -sSL https://raw.githubusercontent.com/denisidoro/snippets/main/bash/install_dotfiles | bash
+##?    wget -qO- https://raw.githubusercontent.com/denisidoro/snippets/main/bash/install_dotfiles | bash
 
 _dot() {
    "${DOTFILES}/bin/dot" "$@"
