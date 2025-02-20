@@ -128,8 +128,10 @@ main() {
 
    log::info "Installing some key dependencies..."
 
+   local is_android=false
    if uname -a | grep -q "ndroid"; then
       log::info "Bootstraping Android..."
+      is_android=true
       _dot pkg add termux-essentials || true
    fi
 
@@ -137,6 +139,10 @@ main() {
 
    _dot pkg add git curl tar vi || true
    _dot pkg add vault || true
+
+   if $is_android; then
+      termux-chroot || true
+   fi
 }
 
 case "${1:-}" in
