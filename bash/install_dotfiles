@@ -12,6 +12,7 @@ export PATH="${DOTFILES}/bin:${PATH}:/usr/local/bin:/usr/bin:/usr/bin:/bin:/usr/
 ##? Env vars:
 ##?    DOTFILES
 ##?    HOMELAB_DOMAIN
+##?    HOMELAB_PORT
 ##?
 ##? Examples:
 ##?    curl -sSL https://raw.githubusercontent.com/denisidoro/snippets/main/bash/install_dotfiles | bash
@@ -57,8 +58,10 @@ _install_if_absent() {
 
 clone_repo() {
    _install_if_absent git
-   local repo="ssh://denis@${HOMELAB_DOMAIN}:8122/usr/share/hassio/backup/git/dotfiles"
-   git clone "$repo" "$DOTFILES" --depth 1
+   export HOMELAB_DOMAIN="${HOMELAB_DOMAIN:-"$(ask_for "homelab domain")"}"
+   export HOMELAB_PORT="${HOMELAB_PORT:-"$(ask_for "homelab port")"}"
+   local repo="ssh://denis@${HOMELAB_DOMAIN}:${HOMELAB_PORT}/usr/share/hassio/backup/git/dotfiles"
+   git clone "$repo" "$DOTFILES"
 }
 
 setup_ssh() {
@@ -114,8 +117,6 @@ main() {
    log::info "Setting up..."
 
    setup_ssh
-
-   export HOMELAB_DOMAIN="${HOMELAB_DOMAIN:-"$(ask_for "homelab domain")"}"
 
    if [ -d "$DOTFILES" ]; then
       log::warn "${DOTFILES} already exists!"
